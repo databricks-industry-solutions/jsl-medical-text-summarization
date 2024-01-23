@@ -51,11 +51,12 @@ spark
 
 # MAGIC %md
 # MAGIC ![IMAGE](https://github.com/JohnSnowLabs/spark-nlp-workshop/blob/master/databricks/python/data/Summarization_Methods_vs_Quality_Dimensions.png?raw=true)
+# MAGIC
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 🔎 Models
+# MAGIC # 🔎 Models
 
 # COMMAND ----------
 
@@ -70,14 +71,13 @@ spark
 # MAGIC |   [summarizer_radiology](https://nlp.johnsnowlabs.com/2023/04/23/summarizer_jsl_radiology_en.html)                  |   This summarization model enables users to rapidly access a succinct synopsis of a report’s key findings without compromising on essential details. It is based on a large language model that is finetuned with healthcare-specific additional data curated by medical doctors at John Snow Labs. It can generate summaries up to 512 tokens given an input text (max 1024 tokens).                                                            |
 # MAGIC |   [summarizer_clinical_guidelines_large](https://nlp.johnsnowlabs.com/2023/05/08/summarizer_clinical_guidelines_large_en.html)  |   The Medical Summarizer Model efficiently categorizes clinical guidelines into four sections for easy understanding. With a 768-token context length, it provides detailed yet concise summaries, leveraging data curated by doctors from John Snow Labs. |
 # MAGIC |   [summarizer_clinical_laymen](https://nlp.johnsnowlabs.com/2023/05/31/summarizer_clinical_laymen_en.html)            |   This model has been carefully fine-tuned with a custom dataset curated by John Snow Labs, expressly designed to minimize the use of clinical terminology in the generated summaries. The summarizer_clinical_laymen model is capable of producing summaries of up to 512 tokens from an input text of a maximum of 1024 tokens.  |
+# MAGIC
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC ## 📍Benchmark Report
-# MAGIC
 # MAGIC Our clinical summarizer models with only 250M parameters perform 30-35% better than non-clinical SOTA text summarizers with 500M parameters, in terms of Bleu and Rouge benchmarks. That is, we achieve 30% better with half of the parameters that other LLMs have. See the details below.
-# MAGIC
 # MAGIC
 # MAGIC ### 🔎Benchmark on Samsum Dataset
 # MAGIC
@@ -119,6 +119,7 @@ spark
 # MAGIC ## 📃 summarizer_clinical_jsl
 # MAGIC
 # MAGIC This summarization model can quickly summarize clinical notes, encounters, critical care notes, discharge notes, reports, etc. It is based on a large language model that is finetuned with healthcare-specific additional data curated by medical doctors at John Snow Labs. It can generate summaries up to 512 tokens given an input text (max 1024 tokens).
+# MAGIC
 
 # COMMAND ----------
 
@@ -138,18 +139,20 @@ data.show(truncate = 60)
 # COMMAND ----------
 
 document_assembler = DocumentAssembler()\
-            .setInputCol('text')\
-            .setOutputCol('document')
+    .setInputCol('text')\
+    .setOutputCol('document')
 
 summarizer = MedicalSummarizer.pretrained("summarizer_clinical_jsl", "en", "clinical/models")\
-            .setInputCols(['document'])\
-            .setOutputCol('summary')\
-            .setMaxTextLength(512)\
-            .setMaxNewTokens(512)
+    .setInputCols(['document'])\
+    .setOutputCol('summary')\
+    .setMaxTextLength(512)\
+    .setMaxNewTokens(512)
 
-pipeline = Pipeline(stages=[
-            document_assembler,
-            summarizer])
+pipeline = Pipeline(
+    stages=[
+        document_assembler,
+        summarizer
+])
 
 model = pipeline.fit(spark.createDataFrame([[""]]).toDF("text"))
 
@@ -196,27 +199,29 @@ print("\n")
 # COMMAND ----------
 
 document_assembler = DocumentAssembler()\
-            .setInputCol('text')\
-            .setOutputCol('document')
+    .setInputCol('text')\
+    .setOutputCol('document')
 
 sentenceDetector = SentenceDetectorDLModel\
-            .pretrained("sentence_detector_dl_healthcare","en","clinical/models")\
-            .setInputCols(["document"])\
-            .setOutputCol("sentence")\
-            .setCustomBounds(["\n"])\
-            .setUseCustomBoundsOnly(True)
+    .pretrained("sentence_detector_dl_healthcare","en","clinical/models")\
+    .setInputCols(["document"])\
+    .setOutputCol("sentence")\
+    .setCustomBounds(["\n"])\
+    .setUseCustomBoundsOnly(True)
 
 summarizer = MedicalSummarizer\
-            .pretrained("summarizer_clinical_jsl")\
-            .setInputCols(['sentence'])\
-            .setOutputCol('summary')\
-            .setMaxTextLength(512)\
-            .setMaxNewTokens(512)
+    .pretrained("summarizer_clinical_jsl")\
+    .setInputCols(['sentence'])\
+    .setOutputCol('summary')\
+    .setMaxTextLength(512)\
+    .setMaxNewTokens(512)
 
-pipeline = Pipeline(stages=[
-            document_assembler,
-            sentenceDetector,
-            summarizer])
+pipeline = Pipeline(
+    stages=[
+        document_assembler,
+        sentenceDetector,
+        summarizer,
+])
 
 model = pipeline.fit(spark.createDataFrame([[""]]).toDF("text"))
 
@@ -249,40 +254,41 @@ for i in range(len(light_result['sentence'])):
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC **We've Made Significant Enhancements To Our Text Summarization Method, Which Now Utilizes A Map-Reduce Approach For Section-Wise Summarization.**
+# MAGIC  %md
+# MAGIC  **We've Made Significant Enhancements To Our Text Summarization Method, Which Now Utilizes A Map-Reduce Approach For Section-Wise Summarization.**
 # MAGIC
 # MAGIC We are excited to announce the integration of new parameters into our `MedicalSummarizer` annotator, empowering users to overcome token limitations and attain heightened flexibility in their medical summarization endeavors. These advanced parameters significantly augment the annotator's functionality, enabling users to generate more accurate and comprehensive summaries of medical documents. By employing a map-reduce approach, the `MedicalSummarizer` efficiently condenses distinct text segments until the desired length is achieved.
-# MAGIC
 # MAGIC The following parameters have been introduced:
-# MAGIC
 # MAGIC - `setRefineSummary`: Set to True for refined summarization with increased computational cost.
 # MAGIC - `setRefineSummaryTargetLength`: Define the target length of summarizations in tokens (delimited by whitespace). Effective only when setRefineSummary=True.
 # MAGIC - `setRefineChunkSize`: Specify the desired size of refined chunks. Should correspond to the LLM context window size in tokens. Effective only when - `setRefineSummary=True`.
 # MAGIC - `setRefineMaxAttempts`: Determine the number of attempts for re-summarizing chunks exceeding the setRefineSummaryTargetLength before discontinuing. Effective only when `setRefineSummary=True`.
 # MAGIC
 # MAGIC These enhancements to the MedicalSummarizer annotator represent our ongoing commitment to providing state-of-the-art tools for healthcare professionals and researchers, facilitating more efficient and accurate medical text analysis.
+# MAGIC
 
 # COMMAND ----------
 
 document_assembler = DocumentAssembler()\
-            .setInputCol('text')\
-            .setOutputCol('document')
+    .setInputCol('text')\
+    .setOutputCol('document')
 
 summarizer = MedicalSummarizer.pretrained("summarizer_clinical_jsl", "en", "clinical/models")\
-            .setInputCols(["document"])\
-            .setOutputCol("summary")\
-            .setMaxTextLength(512)\
-            .setMaxNewTokens(512)\
-            .setDoSample(True)\
-            .setRefineSummary(True)\
-            .setRefineSummaryTargetLength(100)\
-            .setRefineMaxAttempts(3)\
-            .setRefineChunkSize(512)\
+    .setInputCols(["document"])\
+    .setOutputCol("summary")\
+    .setMaxTextLength(512)\
+    .setMaxNewTokens(512)\
+    .setDoSample(True)\
+    .setRefineSummary(True)\
+    .setRefineSummaryTargetLength(100)\
+    .setRefineMaxAttempts(3)\
+    .setRefineChunkSize(512)\
 
-pipeline = Pipeline(stages=[
-            document_assembler,
-            summarizer])
+pipeline = Pipeline(
+    stages=[
+        document_assembler,
+        summarizer
+])
 
 model = pipeline.fit(spark.createDataFrame([[""]]).toDF("text"))
 
@@ -337,7 +343,6 @@ light_result["summary"]
 # MAGIC |Apache Spark |Apache License 2.0| https://github.com/apache/spark/blob/master/LICENSE | https://github.com/apache/spark/tree/master/python/pyspark|
 # MAGIC |Spark NLP |Apache License 2.0| https://github.com/JohnSnowLabs/spark-nlp/blob/master/LICENSE | https://github.com/JohnSnowLabs/spark-nlp|
 # MAGIC |Spark NLP for Healthcare|[Proprietary license - John Snow Labs Inc.](https://www.johnsnowlabs.com/spark-nlp-health/) |NA|NA|
-# MAGIC
 # MAGIC
 # MAGIC
 # MAGIC |Author|
