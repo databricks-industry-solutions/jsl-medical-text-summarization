@@ -189,11 +189,6 @@ print("\n")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## 📍 Summarization of Long Documents
-
-# COMMAND ----------
-
-# MAGIC %md
 # MAGIC ### 🚩 summaries from paragraphs in text
 
 # COMMAND ----------
@@ -250,39 +245,20 @@ for i in range(len(light_result['sentence'])):
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### 🚩 setRefineSummary
-
-# COMMAND ----------
-
-# MAGIC  %md
-# MAGIC  **We've Made Significant Enhancements To Our Text Summarization Method, Which Now Utilizes A Map-Reduce Approach For Section-Wise Summarization.**
+# MAGIC ## 📃 summarizer_clinical_laymen
 # MAGIC
-# MAGIC We are excited to announce the integration of new parameters into our `MedicalSummarizer` annotator, empowering users to overcome token limitations and attain heightened flexibility in their medical summarization endeavors. These advanced parameters significantly augment the annotator's functionality, enabling users to generate more accurate and comprehensive summaries of medical documents. By employing a map-reduce approach, the `MedicalSummarizer` efficiently condenses distinct text segments until the desired length is achieved.
-# MAGIC The following parameters have been introduced:
-# MAGIC - `setRefineSummary`: Set to True for refined summarization with increased computational cost.
-# MAGIC - `setRefineSummaryTargetLength`: Define the target length of summarizations in tokens (delimited by whitespace). Effective only when setRefineSummary=True.
-# MAGIC - `setRefineChunkSize`: Specify the desired size of refined chunks. Should correspond to the LLM context window size in tokens. Effective only when - `setRefineSummary=True`.
-# MAGIC - `setRefineMaxAttempts`: Determine the number of attempts for re-summarizing chunks exceeding the setRefineSummaryTargetLength before discontinuing. Effective only when `setRefineSummary=True`.
-# MAGIC
-# MAGIC These enhancements to the MedicalSummarizer annotator represent our ongoing commitment to providing state-of-the-art tools for healthcare professionals and researchers, facilitating more efficient and accurate medical text analysis.
-# MAGIC
+# MAGIC This model is a modified version of LLM based summarization model that is finetuned with custom dataset by John Snow Labs to avoid using clinical jargon on the summaries.  It can generate summaries up to 512 tokens given an input text (max 1024 tokens).
 
 # COMMAND ----------
 
 document_assembler = DocumentAssembler()\
-    .setInputCol('text')\
-    .setOutputCol('document')
+    .setInputCol("text")\
+    .setOutputCol("document")
 
-summarizer = MedicalSummarizer.pretrained("summarizer_clinical_jsl", "en", "clinical/models")\
+summarizer = MedicalSummarizer.pretrained("summarizer_clinical_laymen", "en", "clinical/models")\
     .setInputCols(["document"])\
     .setOutputCol("summary")\
-    .setMaxTextLength(512)\
-    .setMaxNewTokens(512)\
-    .setDoSample(True)\
-    .setRefineSummary(True)\
-    .setRefineSummaryTargetLength(100)\
-    .setRefineMaxAttempts(3)\
-    .setRefineChunkSize(512)\
+    .setMaxNewTokens(512)
 
 pipeline = Pipeline(
     stages=[
@@ -291,42 +267,16 @@ pipeline = Pipeline(
 ])
 
 model = pipeline.fit(spark.createDataFrame([[""]]).toDF("text"))
-
-# COMMAND ----------
-
-text = """The patient is a pleasant 17-year-old gentleman who was playing basketball today in gym. Two hours prior to presentation, he started to fall and someone stepped on his ankle and kind of twisted his right ankle and he cannot bear weight on it now. It hurts to move or bear weight. No other injuries noted. He does not think he has had injuries to his ankle in the past.
-SOCIAL HISTORY: He does not drink or smoke.
-MEDICAL DECISION MAKING:
-He had an x-ray of his ankle that showed a small ossicle versus avulsion fracture of the talonavicular joint on the lateral view. He has had no pain over the metatarsals themselves. This may be a fracture based upon his exam. He does want to have me to put him in a splint. He was given Motrin here. He will be discharged home to follow up with Dr. X from Orthopedics.
-DISPOSITION: Crutches and splint were administered here. I gave him a prescription for Motrin and some Darvocet if he needs to length his sleep and if he has continued pain to follow up with Dr. X. Return if any worsening problems."""
-
 light_model = LightPipeline(model)
-light_result = light_model.annotate(text)
 
 # COMMAND ----------
 
-light_result["summary"]
-
-# COMMAND ----------
-
-for i in range(len(light_result['document'])):
-    document_text = textwrap.fill(light_result['document'][i], width=120)
-    summary_text = textwrap.fill(light_result['summary'][i], width=120)
-
-    print("➤ Document {}: \n{}".format(i+1, document_text))
-    print("\n")
-    print("➤ Summary {}: \n{}".format(i+1, summary_text))
-    print("\n")
-
-# COMMAND ----------
-
-text = """To determine whether a course of low-dose indomethacin therapy, when initiated within 24 hours of birth, would decrease ductal shunting in premature infants who received prophylactic surfactant in the delivery room. Ninety infants, with birth weights of 600 to 1250 gm, were entered into a prospective, randomized, controlled trial to receive either indomethacin, 0.1 mg/kg per dose, or placebo less than 24 hours and again every 24 hours for six doses. Echocardiography was performed on day 1 before treatment and on day 7, 24 hours after treatment. A hemodynamically significant patent ductus arteriosus (PDA) was confirmed with an out-of-study echocardiogram, and the nonresponders were treated with standard indomethacin or ligation. Forty-three infants received indomethacin (birth weight, 915 +/- 209 gm; gestational age, 26.4 +/- 1.6 weeks; 25 boys), and 47 received placebo (birth weight, 879 +/- 202 gm; gestational age, 26.4 +/- 1.8 weeks; 22 boys) (P = not significant). Of 90 infants, 77 (86%) had a PDA by echocardiogram on the first day of life before study treatment; 84% of these PDAs were moderate or large in size in the indomethacin-treated group compared with 93% in the placebo group. Nine of forty indomethacin-treated infants (21%) were study-dose nonresponders compared with 22 (47%) of 47 placebo-treated infants (p < 0.018). There were no significant differences between both groups in any of the long-term outcome variables, including intraventricular hemorrhage, duration of oxygen therapy, endotracheal intubation, duration of stay in neonatal intensive care unit, time to regain birth weight or reach full caloric intake, incidence of bronchopulmonary dysplasia, and survival. No significant differences were noted in the incidence of oliguria, elevated plasma creatinine concentration, thrombocytopenia, pulmonary hemorrhage, or necrotizing enterocolitis. The prophylactic use of low doses of indomethacin, when initiated in the first 24 hours of life in low birth weight infants who receive prophylactic surfactant in the delivery room, decreases the incidence of left-to-right shunting at the level of the ductus arteriosus."""
+text ="""Olivia Smith was seen in my office for evaluation for elective surgical weight loss on October 6, 2008. Olivia Smith is a 34-year-old female with a BMI of 43. She is 5'6" tall and weighs 267 pounds. She is motivated to attempt surgical weight loss because she has been overweight for over 20 years and wants to have more energy and improve her self-image. She is not only affected physically, but also socially by her weight. When she loses weight she always regains it and she always gains back more weight than she has lost. At one time, she lost 100 pounds and gained the weight back within a year. She has tried numerous commercial weight loss programs including Weight Watcher's for four months in 1992 with 15-pound weight loss, RS for two months in 1990 with six-pound weight loss, Slim Fast for six weeks in 2004 with eight-pound weight loss, an exercise program for two months in 2007 with a five-pound weight loss, Atkin's Diet for three months in 2008 with a ten-pound weight loss, and Dexatrim for one month in 2005 with a five-pound weight loss. She has also tried numerous fat reduction or fad diets. She was on Redux for nine months with a 100-pound weight loss.\n\nPAST MEDICAL HISTORY: She has a history of hypertension and shortness of breath.\n\nPAST SURGICAL HISTORY: Pertinent for cholecystectomy.\n\nPSYCHOLOGICAL HISTORY: Negative.\n\nSOCIAL HISTORY: She is single. She drinks alcohol once a week. She does not smoke.\n\nFAMILY HISTORY: Pertinent for obesity and hypertension.\n\nMEDICATIONS: Include Topamax 100 mg twice daily, Zoloft 100 mg twice daily, Abilify 5 mg daily, Motrin 800 mg daily, and a multivitamin.\n\nALLERGIES: She has no known drug allergies.\n\nREVIEW OF SYSTEMS: Negative.\n\nPHYSICAL EXAM: This is a pleasant female in no acute distress. Alert and oriented x 3. HEENT: Normocephalic, atraumatic. Extraocular muscles intact, nonicteric sclerae. Chest is clear to auscultation bilaterally. Cardiovascular is normal sinus rhythm. Abdomen is obese, soft, nontender and nondistended. Extremities show no edema, clubbing or cyanosis.\n\nASSESSMENT/PLAN: This is a 34-year-old female with a BMI of 43 who is interested in surgical weight via the gastric bypass as opposed to Lap-Band. Olivia Smith will be asking for a letter of medical necessity from Dr. Andrew Johnson. She will also see my nutritionist and social worker and have an upper endoscopy. Once this is completed, we will submit her to her insurance company for approval.
+"""
 
 light_result = light_model.annotate(text)
-
-# COMMAND ----------
-
 light_result["summary"]
+
 
 # COMMAND ----------
 
